@@ -1,25 +1,49 @@
 package web.dao;
 
 import org.springframework.stereotype.Repository;
-import web.model.Role;
 import web.model.User;
 
-import java.util.Collections;
-import java.util.Map;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
+import java.util.List;
 
 @Repository
-public class UserDaoImpl implements UserDao {
-    private final Map<String, User> adminMap = Collections.singletonMap("admin",
-            new User(1L, "admin", "admin", Collections.singleton(new Role(1L, "ROLE_ADMIN")))); // name - уникальное значение, выступает в качестве ключа Map
-    private final Map<String, User> userMap = Collections.singletonMap("user",
-            new User(1L, "user", "user", Collections.singleton(new Role(1L, "ROLE_USER"))));
+public class UserDaoImpl implements UserDao{
+    @PersistenceContext
+    private EntityManager entityManager;
+
+
+    @Override
+    public void addUser(User user) {
+        entityManager.persist(user);
+    }
+
+    @Override
+    public void updateUser(User user) {
+        entityManager.merge(user);
+    }
+
+    @Override
+    public void removeUserById(Long id) {
+        entityManager.remove(entityManager.find(User.class, id));
+    }
+
     @Override
     public User getUserByName(String name) {
-        if (!userMap.containsKey(name)) {
-            return null;
-        }
+        TypedQuery<User> typedQuery
+                = entityManager.createQuery("SELECT u FROM User u WHERE u.name=:name", User.class);
+        typedQuery.setParameter("name", name);
+        return typedQuery.getSingleResult();
+    }
 
-        return userMap.get(name);
+    @Override
+    public User getUserById(Long id) {
+        return entityManager.find(User.class, id);
+    }
+
+    @Override
+    public List<User> getAllUsers() {
+        return entityManager.createQuery("SELECT a FROM User a", User.class).getResultList();
     }
 }
-
